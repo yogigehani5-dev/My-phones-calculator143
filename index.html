@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#132d50">
+<meta name="description" content="MY Phones offline installment calculator in PKR">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>MY Phones Installment Calculator</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#152238;background:#f2f5f9}
+*{box-sizing:border-box}body{margin:0;padding:18px 12px 32px}.wrap{max-width:560px;margin:auto}
+header{background:#132d50;color:white;padding:22px;border-radius:18px;margin-bottom:14px}
+h1{margin:0 0 5px;font-size:26px}header p{margin:0;color:#d5e4f5}
+.card{background:white;border:1px solid #e0e6ef;border-radius:16px;padding:17px;margin:12px 0;box-shadow:0 3px 12px #122b4b0b}
+label{display:block;font-weight:650;font-size:14px;margin:12px 0 6px}
+input,select{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:white}
+input:focus,select:focus{outline:2px solid #8ab6f0;border-color:#467db9}
+.modes{display:flex;gap:12px;flex-wrap:wrap}.modes label{font-weight:500;margin:6px 0;display:flex;align-items:center;gap:7px}.modes input{width:auto}
+.summary{background:#eef3f9;border-radius:12px;padding:13px;margin-top:14px}
+.line{display:flex;justify-content:space-between;gap:12px;padding:7px 0;align-items:center}.line span{color:#5b687a;font-size:14px}.line strong{text-align:right}
+.plans{display:grid;grid-template-columns:1fr;gap:10px}.plan{border:1px solid #d8e1ed;border-radius:13px;padding:14px}.plan.selected{border:2px solid #477dbb;background:#f7faff}
+.plan h3{margin:0 0 6px;font-size:16px}.emi{font-size:23px;font-weight:800;color:#132d50}.sub{font-size:13px;color:#64748b;margin-top:5px}
+button{border:0;border-radius:10px;padding:12px 14px;font:inherit;font-weight:700;cursor:pointer}
+.primary{background:#132d50;color:white;width:100%;margin-top:12px}.secondary{background:#e9eef5;color:#18324f}
+.note{font-size:12px;color:#64748b;line-height:1.5}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}
+.hidden{display:none!important}
+@media(min-width:480px){.plans{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>MY Phones</h1><p>Interactive Installment Calculator · PKR</p></header>
+<div class="card">
+<label for="price">Phone cash price (PKR)</label>
+<input id="price" type="number" min="0" step="1" value="30000" inputmode="numeric">
+<label>Advance method</label>
+<div class="modes">
+<label><input type="radio" name="advMode" value="20" checked> 20% advance</label>
+<label><input type="radio" name="advMode" value="custom"> Custom advance</label>
+</div>
+<div id="customWrap" class="hidden">
+<label for="advance">Custom advance amount (PKR)</label>
+<input id="advance" type="number" min="0" step="1" value="6000" inputmode="numeric">
+</div>
+<div class="summary">
+<div class="line"><span>Cash price</span><strong id="cash">Rs. 30,000</strong></div>
+<div class="line"><span>Advance</span><strong id="adv">Rs. 6,000</strong></div>
+<div class="line"><span>Financed amount</span><strong id="financed">Rs. 24,000</strong></div>
+</div>
+<label for="markup">Flat monthly markup</label>
+<input id="markup" type="number" min="0" step="0.1" value="6" inputmode="decimal">
+<div class="sub">Markup percentage per month, applied to financed amount.</div>
+</div>
+<div class="card">
+<h2 style="font-size:19px;margin:0 0 12px">Installment plans</h2>
+<div class="plans" id="plans"></div>
+<div class="actions">
+<button class="secondary" id="copy">Copy rate list</button>
+<button class="secondary" id="reset">Reset</button>
+</div>
+<p class="note">Estimate only. Flat markup = financed amount × monthly markup × number of months. Total cost includes advance. EMI is rounded to the nearest rupee; the final payment may need a small rounding adjustment.</p>
+</div>
+<div class="card">
+<h2 style="font-size:17px;margin:0 0 8px">Install MY Phones</h2>
+<p class="note">After publishing this app on a secure website, open it in Chrome and tap ⋮ → “Install app” or “Add to Home screen”. Once it has loaded online at least once, the calculator can work offline using its saved app files.</p>
+</div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const money=n=>'Rs. '+Math.round(n).toLocaleString('en-PK');
+function update(){
+ const p=Math.max(0,Number($('price').value)||0);
+ const mode=document.querySelector('input[name="advMode"]:checked').value;
+ $('customWrap').classList.toggle('hidden',mode!=='custom');
+ let a=mode==='20'?p*.2:Math.min(p,Math.max(0,Number($('advance').value)||0));
+ const financed=Math.max(0,p-a), rate=Math.max(0,Number($('markup').value)||0)/100;
+ $('cash').textContent=money(p);$('adv').textContent=money(a);$('financed').textContent=money(financed);
+ $('plans').innerHTML='';
+ [6,9,12].forEach(m=>{
+  const markup=financed*rate*m,total=financed+markup,emi=total/m;
+  const div=document.createElement('div');
+  div.className='plan'+(m===6?' selected':'');
+  div.innerHTML=`<h3>${m} months</h3><div class="emi">${money(emi)} <span style="font-size:13px;font-weight:500">/ month</span></div>
+  <div class="line"><span>Markup (${(rate*m*100).toFixed(1).replace(/\\.0$/,'')}%)</span><strong>${money(markup)}</strong></div>
+  <div class="line"><span>Total payments</span><strong>${money(total)}</strong></div>
+  <div class="line"><span>Total incl. advance</span><strong>${money(a+total)}</strong></div>`;
+  $('plans').appendChild(div);
+ });
+}
+document.querySelectorAll('input').forEach(el=>el.addEventListener('input',update));
+document.querySelectorAll('input[name="advMode"]').forEach(el=>el.addEventListener('change',update));
+$('copy').addEventListener('click',async()=>{
+ const p=Math.max(0,Number($('price').value)||0),mode=document.querySelector('input[name="advMode"]:checked').value;
+ const a=mode==='20'?p*.2:Math.min(p,Math.max(0,Number($('advance').value)||0));
+ const f=p-a,r=Math.max(0,Number($('markup').value)||0)/100;
+ const out=`MY Phones Installment Estimate\nCash price: ${money(p)}\nAdvance: ${money(a)}\nFinanced amount: ${money(f)}\nFlat monthly markup: ${(r*100).toFixed(2)}%\n\n`+[6,9,12].map(m=>`${m} months: EMI ${money((f+f*r*m)/m)}, markup ${money(f*r*m)}, total incl. advance ${money(a+f+f*r*m)}`).join('\n');
+ try{await navigator.clipboard.writeText(out);$('copy').textContent='Copied!';setTimeout(()=>$('copy').textContent='Copy rate list',1800)}
+ catch(e){const ta=document.createElement('textarea');ta.value=out;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();$('copy').textContent='Copied!';setTimeout(()=>$('copy').textContent='Copy rate list',1800)}
+});
+$('reset').addEventListener('click',()=>{$('price').value='30000';$('advance').value='6000';$('markup').value='6';document.querySelector('input[name="advMode"][value="20"]').checked=true;update()});
+update();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
+</script>
+</body>
+</html>
